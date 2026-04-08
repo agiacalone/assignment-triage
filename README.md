@@ -40,7 +40,7 @@ Install `gh` if not already present (Fedora/RHEL):
 sudo dnf install gh
 ```
 
-Install the Classroom extension and authenticate:
+Install the Classroom extension (once — it persists across sessions) and authenticate:
 ```sh
 gh extension install github/gh-classroom
 gh auth login --hostname github.com
