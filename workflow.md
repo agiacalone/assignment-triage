@@ -8,6 +8,10 @@ spreadsheet to guide grading. It is 100% triage — no student is penalized with
 ## Prerequisites
 
 - [`gh`](https://cli.github.com/) CLI installed and authenticated (`repo`, `admin:org`, `read:org` scopes required)
+- GitHub Classroom extension for `gh` (one-time install):
+  ```sh
+  gh extension install github/gh-classroom
+  ```
 - Git access to the course GitHub org
 - Python 3.11+
 
@@ -22,17 +26,22 @@ pip install -r requirements.txt
 | File | Required | Description |
 |------|----------|-------------|
 | `project.toml` | Yes | Assignment config and triage thresholds — one per grading run |
-| `repos.txt` | Yes | One GitHub repo URL per line — generated externally |
 | `roster.csv` | No | Maps GitHub usernames to real names for the output spreadsheet |
 
 ---
 
-## Step 1 — Create the project config
+## Step 1 — Create the run directory and config
 
-Copy and edit `project.toml` for the current assignment:
+```sh
+mkdir runs/cecs-326-sp26-01-lab-02
+cp templates/short-project.toml runs/cecs-326-sp26-01-lab-02/project.toml
+```
+
+Edit `project.toml` and fill in the assignment details:
 
 ```toml
 [assignment]
+assignment_id = 943146
 name = "Lab 02 - Threads"
 org = "csulb-cecs326"
 repo_prefix = "cecs-326-sp26-01-lab-02-threads-"
@@ -45,6 +54,12 @@ pass = 65
 flag = 25
 ```
 
+To find the assignment ID:
+```sh
+gh classroom list                                       # shows classroom IDs
+gh classroom assignments --classroom-id <classroom_id>  # shows assignment IDs
+```
+
 `assigned_date` and `due_date` anchor the temporal analysis. `expected_commits` is
 a rough baseline for the assignment's scope — adjust per project. Scores above
 `pass` triage as PASS; scores below `flag` triage as FLAG; everything in between
@@ -52,30 +67,7 @@ is REVIEW.
 
 ---
 
-## Step 2 — Clone repos and generate the repo list
-
-```sh
-# Clone all student repos into ./<assignment-slug>-submissions/
-gh classroom clone student-repos -a <assignment_id> --per-page 100
-
-# Generate repos.txt from the cloned repos
-find <assignment-slug>-submissions -maxdepth 1 -mindepth 1 -type d \
-  -exec git -C {} remote get-url origin \; > repos.txt
-```
-
-The `--per-page 100` flag matters — the default of 15 silently misses students in
-larger sections. The assignment ID is visible in the GitHub Classroom web UI or via:
-
-```sh
-gh classroom assignments --classroom-id <classroom_id>
-```
-
-Since repos are already on disk after this step, pass `--skip-clone` to the grader
-in Step 4.
-
----
-
-## Step 3 — (Optional) Prepare the roster
+## Step 2 — (Optional) Prepare the roster
 
 `roster.csv` maps GitHub usernames to real names in the output. If omitted,
 GitHub usernames appear in the `name` column instead.
@@ -89,26 +81,20 @@ tnguyen,Tran Nguyen
 
 ---
 
-## Step 4 — Run the tool
+## Step 3 — Run
 
 ```sh
-grader --config project.toml --repos repos.txt [--roster roster.csv] --skip-clone
+./triage.sh runs/cecs-326-sp26-01-lab-02
 ```
 
-The tool will:
-
-1. With `--skip-clone`, use the repos already cloned in Step 2 as-is. Without it,
-   the tool clones each URL from `repos.txt` into a `repos/` subdirectory (or pulls
-   if already present).
-2. Analyze each repo's git history for authenticity signals.
-3. Score each repo (0–100) and assign a triage bucket.
-4. Write `results.csv` to the current directory.
+This clones all student repos, generates `repos.txt`, and runs the grader in one step.
+Re-running the same command pulls the latest commits instead of re-cloning.
 
 ---
 
-## Step 5 — Review the output
+## Step 4 — Review the output
 
-Open `results.csv` in LibreOffice Calc. Rows are sorted by triage bucket:
+Open `results.xlsx` in LibreOffice Calc. Rows are sorted by triage bucket:
 
 | Bucket | Meaning | Action |
 |--------|---------|--------|
@@ -121,14 +107,11 @@ citing concrete measurements (e.g., *"94% of insertions in one commit; zero
 deletions across history; all commits within 73 minutes"*). Use this to inform
 review, not to replace it.
 
-The `grade` column is pre-populated with a suggested value based on triage and
-score. The instructor owns the final grade.
+`results.csv` and `results.md` are also written alongside the spreadsheet.
 
 ---
 
 ## Repeat runs
 
-Re-running the tool on the same directory pulls the latest commits for any already-
-cloned repos before re-analyzing. Useful if students push late amendments or if
-thresholds need adjustment — edit `project.toml` and re-run; `results.csv` is
-overwritten.
+Edit `project.toml` to adjust thresholds or weights, then re-run `triage.sh`.
+Repos are pulled (not re-cloned), and all result files are overwritten.
