@@ -55,10 +55,13 @@ cp ../../templates/single-sitting.toml project.toml
 # edit project.toml: set name, org, repo_prefix, assigned_date, due_date, total_points
 ```
 
-**3. Clone student repos and generate the URL list:**
+**3. Clone student repos and generate `repos.txt`:**
 ```sh
+# Clone all student repos — creates a <assignment-slug>-submissions/ directory
 gh classroom clone student-repos -a <assignment_id> --per-page 100
-find <assignment-slug>-submissions -maxdepth 1 -mindepth 1 -type d \
+
+# Extract each repo's remote URL into repos.txt (one URL per line)
+find *-submissions -maxdepth 1 -mindepth 1 -type d \
   -exec git -C {} remote get-url origin \; > repos.txt
 ```
 
