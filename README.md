@@ -33,12 +33,22 @@ Scores map to three buckets configured per assignment:
 pip install -r requirements.txt
 ```
 
-Requires Python 3.11+ and the `gh` CLI authenticated with `repo`, `admin:org`,
-and `read:org` scopes:
+Requires Python 3.11+ and the `gh` CLI with the GitHub Classroom extension.
 
+Install `gh` if not already present (Fedora/RHEL):
 ```sh
+sudo dnf install gh
+```
+
+Install the Classroom extension and authenticate:
+```sh
+gh extension install github/gh-classroom
+gh auth login --hostname github.com
 gh auth refresh --hostname github.com -s repo,admin:org,read:org
 ```
+
+The `admin:org` and `read:org` scopes are required — without them the Classroom
+API returns empty results with no error.
 
 ---
 
