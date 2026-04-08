@@ -7,6 +7,7 @@
 # Cleanup-after-paste detection enabled at moderate weight.
 
 [assignment]
+assignment_id = 0
 name = "Project - Short Term"
 org = "your-github-org"
 repo_prefix = "cecs-XXX-spYY-XX-project-name-"

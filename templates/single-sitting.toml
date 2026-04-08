@@ -13,6 +13,7 @@
 # red flags. Even in one sitting, real students backtrack and revise.
 
 [assignment]
+assignment_id = 0
 name = "Lab - Single Sitting"
 org = "your-github-org"
 repo_prefix = "cecs-XXX-spYY-XX-lab-XX-name-"
