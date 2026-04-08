@@ -1,0 +1,37 @@
+# Template: Full-semester term project
+# Copy to your run directory and adjust values.
+#
+# Use case: multi-month individual or group project. Higher cheating incentive,
+# more complex code, longer window for authentic behavioral signals to accumulate.
+# Key signals: temporal spread across weeks/months, cleanup-after-paste detection,
+# high commit count.
+
+[assignment]
+name = "Term Project"
+org = "your-github-org"
+repo_prefix = "cecs-XXX-spYY-XX-project-name-"
+assigned_date = "2026-01-20"
+due_date = "2026-05-08"
+expected_commits = 40
+total_points     = 100
+
+[thresholds]
+pass = 65
+flag = 25
+
+# Weights tuned for a multi-month project.
+# - spread_days: dominant signal; a real project spans weeks, not days
+# - commit_count: high bar; 40+ commits expected over a semester
+# - cleanup_commits: enabled; paste-then-cleanup pattern is common with LLMs
+# - no_dump: relaxed; large commits are normal in real projects
+# - interval_cv: de-emphasized; less meaningful over months
+# - file_churn: removed (absorbed into spread/count signals at this scale)
+[weights]
+commit_count     = 20
+spread_days      = 30
+started_early    = 10
+interval_cv      =  5
+deletions        = 10
+file_churn       =  0
+no_dump          = 10
+cleanup_commits  = 15

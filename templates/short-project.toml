@@ -1,0 +1,39 @@
+# Template: Short-term project (3-4 week turnaround)
+# Copy to your run directory and adjust values.
+#
+# Use case: most common assignment type. Students legitimately work in one or
+# two focused bursts (e.g., a weekend). Temporal spread is less meaningful;
+# within-session quality signals (deletions, file churn) carry more weight.
+# Cleanup-after-paste detection enabled at moderate weight.
+
+[assignment]
+name = "Project - Short Term"
+org = "your-github-org"
+repo_prefix = "cecs-XXX-spYY-XX-project-name-"
+assigned_date = "2026-03-17"
+due_date = "2026-04-07"
+expected_commits = 12
+total_points     = 100
+
+[thresholds]
+pass = 60
+flag = 20
+# Relaxed: a real weekend session can run several hours
+window_cap_hours = 6
+# Relaxed: 2+ days acceptable for a weekend worker
+min_spread_days  = 2
+
+# Weights tuned for a 3-4 week project where burst work is legitimate.
+# - deletions + file_churn: primary authenticity signals within a session
+# - spread_days: lower weight and lower threshold (2 days ok)
+# - cleanup_commits: enabled; paste-then-cleanup still detectable
+# - no_dump: moderate; some large commits expected
+[weights]
+commit_count     = 15
+spread_days      = 15
+started_early    = 15
+interval_cv      =  5
+deletions        = 20
+file_churn       = 15
+no_dump          = 10
+cleanup_commits  = 10

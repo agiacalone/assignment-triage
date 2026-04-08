@@ -1,0 +1,47 @@
+# Template: Short assignment completeable in one sitting
+# Copy to your run directory and adjust values.
+#
+# Use case: labs, readings, or exercises available over several days but
+# expected to take 1-3 hours of actual work. A single burst of commits is
+# completely normal and not suspicious. Temporal spread within the commit
+# history is irrelevant — but assigned_date/due_date still matter because
+# started_early tells you whether they did it at the start of the window
+# or the night before the deadline.
+#
+# Scoring focuses almost entirely on whether the work looks "too perfect" —
+# cleanup-after-paste, zero deletions, and single-commit dumps are the primary
+# red flags. Even in one sitting, real students backtrack and revise.
+
+[assignment]
+name = "Lab - Single Sitting"
+org = "your-github-org"
+repo_prefix = "cecs-XXX-spYY-XX-lab-XX-name-"
+assigned_date = "2026-03-31"
+due_date = "2026-04-07"
+expected_commits = 4
+total_points     = 100
+
+[thresholds]
+pass = 45
+flag = 15
+# One sitting is expected — cap disabled (0 = off)
+window_cap_hours = 0
+# Spread is irrelevant; set low so no one is penalized for working in one day
+min_spread_days  = 1
+
+# Weights tuned for one-sitting work.
+# - cleanup_commits: dominant signal; paste-then-cleanup is the main tell
+# - no_dump: high; submitting everything in one commit with no prior history is a flag
+# - deletions: high; even in one session real work involves backtracking
+# - interval_cv: moderate; natural typing rhythm varies even within a session
+# - started_early: zero; fires on 100% of students for short windows, not discriminating
+# - spread_days + file_churn: zero; commit history will be one burst by design
+[weights]
+commit_count     = 10
+spread_days      =  0
+started_early    =  0
+interval_cv      = 10
+deletions        = 25
+file_churn       =  0
+no_dump          = 25
+cleanup_commits  = 30
