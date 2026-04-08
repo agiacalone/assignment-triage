@@ -56,40 +56,30 @@ API returns empty results with no error.
 
 **1. Create a run directory for the assignment:**
 ```sh
-mkdir runs/cecs-326-sp26-01-lab-02 && cd runs/cecs-326-sp26-01-lab-02
+mkdir runs/cecs-326-sp26-01-lab-02
 ```
 
 **2. Copy and edit the appropriate template:**
 ```sh
-cp ../../templates/single-sitting.toml project.toml
-# edit project.toml: set name, org, repo_prefix, assigned_date, due_date, total_points
+cp templates/single-sitting.toml runs/cecs-326-sp26-01-lab-02/project.toml
+# edit project.toml: set assignment_id, name, org, repo_prefix, assigned_date, due_date, total_points
 ```
 
-**3. Clone student repos and generate `repos.txt`:**
-
-First, find the assignment ID:
+To find the assignment ID:
 ```sh
 gh classroom list                                      # shows classroom IDs
 gh classroom assignments --classroom-id <classroom_id> # shows assignment IDs
 ```
 
-Then clone and generate the URL list:
+**3. Run triage.sh:**
 ```sh
-# Clone all student repos — creates a <assignment-slug>-submissions/ directory
-# Replace 943146 with your assignment ID from the step above
-gh classroom clone student-repos -a 943146 --per-page 100
-
-# Extract each repo's remote URL into repos.txt (one URL per line)
-find *-submissions -maxdepth 1 -mindepth 1 -type d \
-  -exec git -C {} remote get-url origin \; > repos.txt
+./triage.sh runs/cecs-326-sp26-01-lab-02
 ```
 
-**4. Run the grader:**
-```sh
-python3 ../../grader.py --config project.toml --repos repos.txt --skip-clone
-```
+This clones all student repos, generates `repos.txt`, and runs the grader in one step.
+Re-running pulls the latest commits instead of re-cloning.
 
-**5. Open `results.xlsx`** in LibreOffice Calc. Rows are sorted FLAG → REVIEW → PASS.
+**4. Open `results.xlsx`** in LibreOffice Calc. Rows are sorted FLAG → REVIEW → PASS.
 The `reasoning` column explains every score in plain English.
 
 ---
