@@ -214,7 +214,9 @@ def score_repo(repo_path, config):
     count = len(dates)
 
     if count == 0:
-        return 0, "MISSING: no commits found"
+        empty_stats = {"commits": 0, "spread": 0, "early": False, "cv": 0.0,
+                       "del_pct": 0.0, "churn": 0, "dump_pct": 0.0, "cleanups": 0}
+        return 0, "MISSING: no commits found", empty_stats
 
     found, missing = [], []
     points = 0
@@ -275,8 +277,8 @@ def score_repo(repo_path, config):
         missing.append(f"single commit contains {dump:.0%} of all insertions")
 
     # cleanup commits (deletion-heavy commit after large insertion = paste cleanup)
+    cleanups = cleanup_commit_count(repo_path)
     if w["cleanup_commits"] > 0:
-        cleanups = cleanup_commit_count(repo_path)
         if cleanups == 0:
             points += w["cleanup_commits"]
             found.append("no cleanup-after-paste commits detected")
@@ -297,7 +299,18 @@ def score_repo(repo_path, config):
     if missing:
         parts.append("MISSING: " + "; ".join(missing))
 
-    return points, " | ".join(parts)
+    stats = {
+        "commits":    count,
+        "spread":     days,
+        "early":      started_early(dates, assigned, due),
+        "cv":         cv,
+        "del_pct":    dratio,
+        "churn":      churn,
+        "dump_pct":   dump,
+        "cleanups":   cleanups,
+    }
+
+    return points, " | ".join(parts), stats
 
 
 def triage(score, pass_t, flag_t):
@@ -383,56 +396,86 @@ def write_xlsx(rows, path, config):
         "REVIEW": "FFF2CC",  # yellow tint
         "PASS":   "CCFFCC",  # green tint
     }
-    HEADER_FILL = "2F4F7F"
-    COLS = ["name", "repo_url", "triage", "score", "grade", "reasoning"]
-    HEADERS = ["Name", "Repository", "Triage", "Score", "Grade", "Reasoning"]
+    HEADER_FILL  = "2F4F7F"
+    STAT_FILL    = "3A6599"   # slightly lighter blue for stat header group
+
+    # Core columns + stat columns + reasoning
+    CORE_COLS    = ["name", "repo_url", "triage", "score", "grade"]
+    CORE_HEADERS = ["Name", "Repository", "Triage", "Score", "Grade"]
+    STAT_KEYS    = ["commits", "spread", "early", "cv", "del_pct", "churn", "dump_pct", "cleanups"]
+    STAT_HEADERS = ["Commits", "Spread\n(days)", "Early", "CV", "Del%", "Churn\n(files)", "Dump%", "Cleanups"]
+    TRAIL_COLS    = ["reasoning"]
+    TRAIL_HEADERS = ["Reasoning"]
+
+    ALL_COLS    = CORE_COLS + STAT_KEYS + TRAIL_COLS
+    ALL_HEADERS = CORE_HEADERS + STAT_HEADERS + TRAIL_HEADERS
 
     wb = Workbook()
     ws = wb.active
     ws.title = config["assignment"].get("name", "Results")
 
     # Header row
-    header_font  = Font(bold=True, color="FFFFFF")
-    header_fill  = PatternFill("solid", fgColor=HEADER_FILL)
-    header_align = Alignment(horizontal="center", vertical="center", wrap_text=False)
     thin = Side(style="thin", color="AAAAAA")
     border = Border(left=thin, right=thin, top=thin, bottom=thin)
 
-    for col_i, header in enumerate(HEADERS, 1):
+    for col_i, (key, header) in enumerate(zip(ALL_COLS, ALL_HEADERS), 1):
+        is_stat = key in STAT_KEYS
         cell = ws.cell(row=1, column=col_i, value=header)
-        cell.font   = header_font
-        cell.fill   = header_fill
-        cell.alignment = header_align
-        cell.border = border
+        cell.font      = Font(bold=True, color="FFFFFF")
+        cell.fill      = PatternFill("solid", fgColor=STAT_FILL if is_stat else HEADER_FILL)
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border    = border
 
-    ws.row_dimensions[1].height = 18
+    ws.row_dimensions[1].height = 30
     ws.freeze_panes = "A2"
 
     # Data rows
     for row_i, row in enumerate(rows, 2):
-        fill = PatternFill("solid", fgColor=COLORS[row["triage"]])
-        for col_i, key in enumerate(COLS, 1):
-            val = row[key]
+        fill  = PatternFill("solid", fgColor=COLORS[row["triage"]])
+        stats = row.get("stats", {})
+
+        def stat_display(key):
+            v = stats.get(key)
+            if v is None:
+                return ""
+            if key == "early":
+                return "Y" if v else "N"
+            if key in ("del_pct", "dump_pct"):
+                return f"{v:.0%}"
+            if key == "cv":
+                return f"{v:.2f}"
+            return v  # int for commits, spread, churn, cleanups
+
+        col_vals = (
+            [row[k] for k in CORE_COLS]
+            + [stat_display(k) for k in STAT_KEYS]
+            + [row["reasoning"]]
+        )
+
+        for col_i, (key, val) in enumerate(zip(ALL_COLS, col_vals), 1):
             cell = ws.cell(row=row_i, column=col_i, value=val)
             cell.fill   = fill
             cell.border = border
             cell.alignment = Alignment(
                 vertical="top",
                 wrap_text=(key == "reasoning"),
-                horizontal="left",
+                horizontal="center" if key in STAT_KEYS + ["score", "triage"] else "left",
             )
-            if key == "score":
-                cell.alignment = Alignment(horizontal="center", vertical="top")
             if key == "repo_url":
                 cell.hyperlink = val if val.startswith("http") else f"https://github.com/{val.split(':')[1].removesuffix('.git')}"
                 cell.font = Font(color="0563C1", underline="single")
 
     # Column widths
-    widths = {"name": 24, "repo_url": 36, "triage": 9, "score": 7, "grade": 8, "reasoning": 80}
-    for col_i, key in enumerate(COLS, 1):
-        ws.column_dimensions[get_column_letter(col_i)].width = widths[key]
+    widths = {
+        "name": 24, "repo_url": 36, "triage": 9, "score": 7, "grade": 8,
+        "commits": 9, "spread": 8, "early": 7, "cv": 6,
+        "del_pct": 7, "churn": 8, "dump_pct": 7, "cleanups": 9,
+        "reasoning": 70,
+    }
+    for col_i, key in enumerate(ALL_COLS, 1):
+        ws.column_dimensions[get_column_letter(col_i)].width = widths.get(key, 12)
 
-    # Auto row height for wrapped reasoning
+    # Row heights
     for row_i in range(2, len(rows) + 2):
         ws.row_dimensions[row_i].height = 15
 
@@ -532,7 +575,7 @@ def main():
         github_id = repo_name.removeprefix(prefix) if prefix else repo_name
         display_name = roster.get(github_id, github_id)
 
-        score, reasoning = score_repo(local, config)
+        score, reasoning, stats = score_repo(local, config)
         bucket = triage(score, pass_t, flag_t)
 
         rows.append({
@@ -541,6 +584,7 @@ def main():
             "triage":     bucket,
             "score":      score,
             "grade":      f"0/{total_points}" if score == 0 and "no commits found" in reasoning else f"/{total_points}",
+            "stats":      stats,
             "reasoning":  reasoning,
         })
         print(f"  {bucket:6s}  {score:3d}  {display_name}")
@@ -548,9 +592,10 @@ def main():
     order = {"FLAG": 0, "REVIEW": 1, "PASS": 2}
     rows.sort(key=lambda r: (order[r["triage"]], -r["score"]))
 
-    # Machine-readable CSV
+    # Machine-readable CSV (stats dict excluded — raw values are in reasoning)
+    csv_fields = ["name", "repo_url", "triage", "score", "grade", "reasoning"]
     with open(args.output, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=["name", "repo_url", "triage", "score", "grade", "reasoning"])
+        writer = csv.DictWriter(f, fieldnames=csv_fields, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
 
