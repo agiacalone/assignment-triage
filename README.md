@@ -56,19 +56,22 @@ cp ../../templates/single-sitting.toml project.toml
 ```
 
 **3. Clone student repos and generate `repos.txt`:**
+
+First, find the assignment ID:
+```sh
+gh classroom list                                      # shows classroom IDs
+gh classroom assignments --classroom-id <classroom_id> # shows assignment IDs
+```
+
+Then clone and generate the URL list:
 ```sh
 # Clone all student repos — creates a <assignment-slug>-submissions/ directory
-gh classroom clone student-repos -a <assignment_id> --per-page 100
+# Replace 943146 with your assignment ID from the step above
+gh classroom clone student-repos -a 943146 --per-page 100
 
 # Extract each repo's remote URL into repos.txt (one URL per line)
 find *-submissions -maxdepth 1 -mindepth 1 -type d \
   -exec git -C {} remote get-url origin \; > repos.txt
-```
-
-The assignment ID is visible in the GitHub Classroom web UI or via:
-```sh
-gh classroom assignments --classroom-id <classroom_id>
-gh classroom list  # to find classroom IDs
 ```
 
 **4. Run the grader:**
