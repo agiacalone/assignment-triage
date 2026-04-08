@@ -108,6 +108,7 @@ Key config values to set per assignment:
 
 ```toml
 [assignment]
+assignment_id = 0
 name          = "Lab 02 - Semaphores"
 org           = "your-github-org"
 repo_prefix   = "cecs-326-sp26-01-lab-02-semaphores-"

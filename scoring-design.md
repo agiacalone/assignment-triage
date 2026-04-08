@@ -235,6 +235,7 @@ improve naturally with real data over time.
 
 ```toml
 [assignment]
+assignment_id = 0
 name = "Lab 02 - Threads"
 org = "csulb-cecs326"
 repo_prefix = "cecs-326-sp26-01-lab-02-threads-"
